@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bluesky Moderation Notification Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #0085ff;
+    --blue-dark: #006bd6;
+    --blue-light: #e8f3ff;
+    --text: #1a2433;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --bg: #f0f4f8;
+    --white: #ffffff;
+    --success: #059669;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --purple: #7c3aed;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 16px 48px;
+    line-height: 1.5;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .header-icon {
+    width: 48px; height: 48px;
+    background: var(--blue);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,133,255,0.3);
+  }
+  .header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+  .header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Cards */
+  .card {
+    background: var(--white);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+
+  /* Layout */
+  .top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 620px) { .top-grid { grid-template-columns: 1fr; } }
+
+  /* Form Fields */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .field-value {
+    font-size: 14px;
+    color: var(--text-muted);
+    padding: 9px 0 2px;
+    font-weight: 500;
+  }
+  select, input[type="number"] {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 34px;
+    cursor: pointer;
+  }
+  select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0,133,255,0.12);
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .metric {
+    background: var(--bg);
+    border-radius: 9px;
+    padding: 10px 13px;
+    border: 1px solid transparent;
+  }
+  .metric.full { grid-column: 1 / -1; }
+  .metric-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .metric-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .metric-value.muted { color: var(--text-muted); font-weight: 500; font-size: 14px; }
+  .metric-value.success { color: var(--success); }
+  .metric-value.warning { color: var(--warning); }
+  .metric-value.danger { color: var(--danger); }
+  .metric-value.purple { color: var(--purple); }
+  .metric.highlight-danger { border-color: #fca5a5; background: #fff1f1; }
+  .metric.highlight-warning { border-color: #fcd34d; background: #fffbeb; }
+
+  /* Notification Section */
+  .notification-section { margin-bottom: 18px; }
+  .notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .notification-header .card-title { margin-bottom: 0; }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .copy-btn:hover { background: var(--blue-dark); }
+  .copy-btn:active { transform: scale(0.97); }
+  .copy-btn.copied { background: var(--success); }
+  .copy-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+
+  .notification-box {
+    background: #f8fafc;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 100px;
+    font-family: inherit;
+  }
+  .notification-box.placeholder { color: var(--text-muted); font-style: italic; }
+
+  /* Instructions */
+  .instructions {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: 14px;
+    padding: 18px 22px;
+  }
+  .instructions .card-title { color: #92400e; }
+  .instructions ol {
+    padding-left: 20px;
+    color: #78350f;
+    font-size: 13.5px;
+  }
+  .instructions ol li { margin-bottom: 6px; }
+  .instructions ol li:last-child { margin-bottom: 0; }
+  .instructions strong { font-weight: 700; }
+
+  /* Severity badge in dropdown */
+  .severity-info {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .sev-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .sev-none { background: #f1f5f9; color: #475569; }
+  .sev-minor { background: #fef9c3; color: #854d0e; }
+  .sev-serious { background: #fee2e2; color: #991b1b; }
+  .sev-critical { background: #581c87; color: white; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 18px 0;
+  }
+
+  .strike-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .strike-pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.15s;
+  }
+  .strike-pip.filled { background: var(--danger); }
+  .strike-pip.threshold { background: var(--warning); }
+  .strike-pip.new { background: var(--blue); }
+
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">🦋</div>
+    <div>
+      <h1>Bluesky Moderation Notification Generator</h1>
+      <p>Generate moderation notifications for Ozone — no spreadsheet required</p>
+    </div>
+  </div>
+
+  <!-- Top Grid: Inputs + Metrics -->
+  <div class="top-grid">
+
+    <!-- Inputs -->
+    <div class="card">
+      <div class="card-title">START HERE 👇 &nbsp; Inputs</div>
+
+      <div class="field">
+        <label>Today's Date</label>
+        <div class="field-value" id="dateDisplay">—</div>
+      </div>
+
+      <div class="field">
+        <label for="policy">Select Policy</label>
+        <select id="policy">
+          <option value="">— Select policy —</option>
+          <optgroup label="Content Policies">
+            <option>Adult Content</option>
+            <option>Child Safety</option>
+            <option>Violence &amp; Physical Harm</option>
+            <option>Threats &amp; Intimidation</option>
+            <option>Hate Speech &amp; Discrimination</option>
+          </optgroup>
+          <optgroup label="Behavior Policies">
+            <option>Harassment &amp; Bullying</option>
+            <option>Impersonation</option>
+            <option>Spam</option>
+            <option>Platform Manipulation</option>
+          </optgroup>
+          <optgroup label="Information Policies">
+            <option>Misinformation</option>
+            <option>Illegal Content</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="severity">Select Severity Level</label>
+        <select id="severity">
+          <option value="">— Select severity —</option>
+          <option value="no_strikes">No Strikes — Post Removed, No Strike</option>
+          <option value="sev1">Sev 1 (Low) — Minor Violation, Warning</option>
+          <option value="sev2">Sev 2 (Moderate) — Serious, +2 Strikes</option>
+          <option value="sev3">Sev 3 (High) — Serious, +3 Strikes</option>
+          <option value="sev4">Sev 4 (High Risk) — Serious, +4 Strikes</option>
+          <option value="critical">Critical — Immediate Permanent Removal</option>
+        </select>
+      </div>
+
+      <div class="field" id="currentStrikesField">
+        <label for="currentStrikes">Current Number of Strikes</label>
+        <input type="number" id="currentStrikes" min="0" max="15" value="0" placeholder="0">
+      </div>
+    </div>
+
+    <!-- Auto Suggest Metrics -->
+    <div class="card">
+      <div class="card-title">Auto Suggest &nbsp;·&nbsp; do not edit</div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-label">CG Policy</div>
+          <div class="metric-value muted" id="m-policy">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Strikes Added</div>
+          <div class="metric-value" id="m-added">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">New Strike Total</div>
+          <div class="metric-value" id="m-total">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Last Threshold</div>
+          <div class="metric-value" id="m-last">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Next Threshold</div>
+          <div class="metric-value" id="m-next">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">New Threshold</div>
+          <div class="metric-value" id="m-new">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Future Threshold</div>
+          <div class="metric-value" id="m-future">—</div>
+        </div>
+        <div class="metric" id="m-susp-card">
+          <div class="metric-label">Suspension Triggered?</div>
+          <div class="metric-value" id="m-susp">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Suspension Length</div>
+          <div class="metric-value" id="m-length">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Access Restored</div>
+          <div class="metric-value" id="m-access">—</div>
+        </div>
+        <div class="metric full" id="m-approach-card">
+          <div class="metric-label">Approaching Removal</div>
+          <div class="metric-value" id="m-approach">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Notification Text -->
+  <div class="card notification-section">
+    <div class="notification-header">
+      <div class="card-title">📋 &nbsp; Notification Text</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyText()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy Text
+      </button>
+    </div>
+    <div class="notification-box placeholder" id="notifBox">
+      Select a policy and severity level above to generate the notification text.
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instructions">
+    <div class="card-title">Instructions</div>
+    <ol>
+      <li>Select <strong>Policy</strong> + <strong>Severity Level</strong> + enter the <strong>Current Strike Count</strong> from the dropdowns above.</li>
+      <li>Click <strong>Copy Text</strong> — the notification is copied to your clipboard.</li>
+      <li>Paste into the <strong>Ozone</strong> email notification text box.</li>
+      <li>If you need to edit the text, do it directly in Ozone — not here.</li>
+    </ol>
+  </div>
+
+</div>
+
+<footer>Bluesky Moderation Tool &nbsp;·&nbsp; Based on community guidelines strike system</footer>
+
+<script>
+// ─── Configuration ─────────────────────────────────────────────────────────
+
+const SEVERITY = {
+  no_strikes: { strikesAdded: 0,  type: 'none',     label: 'No Strikes' },
+  sev1:       { strikesAdded: 1,  type: 'minor',    label: 'Sev 1 (Low)' },
+  sev2:       { strikesAdded: 2,  type: 'serious',  label: 'Sev 2 (Moderate)' },
+  sev3:       { strikesAdded: 3,  type: 'serious',  label: 'Sev 3 (High)' },
+  sev4:       { strikesAdded: 4,  type: 'serious',  label: 'Sev 4 (High Risk)' },
+  critical:   { strikesAdded: 0,  type: 'critical', label: 'Critical' },
+};
+
+const THRESHOLDS      = [4, 8, 16];
+const SUSP_DURATION   = { 4: '72 hours', 8: '7 days',   16: 'permanent' };
+const SUSP_DAYS       = { 4: 3,          8: 7 };
+
+const APPEAL = 'If you believe this action was taken in error, you can appeal within 14 days using our in-app appeal tool or by emailing moderation@blueskyweb.xyz. Include context about why you believe this decision was incorrect.';
+
+// ─── Utilities ──────────────────────────────────────────────────────────────
+
+function today() {
+  return new Date();
+}
+
+function formatDate(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function highestThresholdBelow(n) {
+  // Highest threshold that is <= n, or 0 if none
+  let t = 0;
+  for (const thresh of THRESHOLDS) {
+    if (thresh <= n) t = thresh;
+    else break;
+  }
+  return t;
+}
+
+function lowestThresholdAbove(n) {
+  return THRESHOLDS.find(t => t > n) ?? null;
+}
+
+// ─── Core Logic ─────────────────────────────────────────────────────────────
+
+function compute(severityKey, currentStrikes) {
+  const cfg = SEVERITY[severityKey];
+  if (!cfg) return null;
+
+  const strikesAdded = cfg.strikesAdded;
+  const newTotal     = currentStrikes + strikesAdded;
+  const now          = today();
+
+  // Thresholds
+  const lastThreshold   = highestThresholdBelow(currentStrikes);
+  const nextThreshold   = lowestThresholdAbove(currentStrikes);
+
+  // Highest threshold crossed by this action
+  let newThreshold = null;
+  for (const t of THRESHOLDS) {
+    if (t > currentStrikes && t <= newTotal) newThreshold = t;
+  }
+
+  const futureThreshold = newThreshold
+    ? lowestThresholdAbove(newThreshold)
+    : lowestThresholdAbove(newTotal);
+
+  // Suspension
+  let suspensionTriggered = false;
+  let suspensionLength    = null;
+  let accessRestored      = null;
+
+  if (newThreshold !== null) {
+    suspensionTriggered = true;
+    suspensionLength    = SUSP_DURATION[newThreshold];
+    if (SUSP_DAYS[newThreshold]) {
+      accessRestored = formatDate(addDays(now, SUSP_DAYS[newThreshold]));
+    }
+  }
+
+  // Permanent removal by accumulation
+  const permanentByAccumulation = (cfg.type === 'serious' && newTotal >= 16);
+
+  // Approaching removal: 12–15 strikes after action
+  const approachingRemoval = (newTotal >= 12 && newTotal < 16 && cfg.type === 'serious');
+
+  return {
+    strikesAdded,
+    newTotal,
+    lastThreshold,
+    nextThreshold,
+    newThreshold,
+    futureThreshold,
+    suspensionTriggered,
+    suspensionLength,
+    accessRestored,
+    approachingRemoval,
+    permanentByAccumulation,
+    violationType: cfg.type,
+  };
+}
+
+// ─── Notification Builder ────────────────────────────────────────────────────
+
+function buildNotification(policy, severityKey, currentStrikes, m) {
+  const type = m.violationType;
+
+  // ── No Strikes ──────────────────────────────────────────
+  if (type === 'none') {
+    return [
+      'Your post was removed, but no new strikes have been applied to your account.',
+      APPEAL,
+    ].join('\n\n');
+  }
+
+  // ── Critical ────────────────────────────────────────────
+  if (type === 'critical') {
+    return [
+      `Your post violated Bluesky's Community Guidelines on ${policy}. This was classified as a Critical Violation. Critical violations include content that is illegal, highly dangerous, or poses imminent risk of real-world harm. These violations result in immediate and permanent account removal.`,
+      'You will no longer be able to access this account.',
+    ].join('\n\n');
+  }
+
+  // ── Minor (warning) ─────────────────────────────────────
+  if (type === 'minor') {
+    return [
+      `Your post violated Bluesky's Community Guidelines on ${policy}. This was classified as a Minor Violation.`,
+      'This is a warning. Future violations of this policy will result in strikes against your account.',
+      APPEAL,
+    ].join('\n\n');
+  }
+
+  // ── Serious ─────────────────────────────────────────────
+  const parts = [];
+
+  // Opening line
+  parts.push(
+    `Your post violated Bluesky's Community Guidelines on ${policy}. This was classified as a Serious Violation. This violation added ${m.strikesAdded} strike(s) to your account. You now have ${m.newTotal} total strikes.`
+  );
+
+  if (m.permanentByAccumulation) {
+    // Reached 16 strikes
+    parts.push('Because you reached 16 strikes, your account has been permanently removed.');
+  } else if (m.suspensionTriggered && m.newThreshold) {
+    // Suspension triggered
+    parts.push(
+      `Because you reached ${m.newThreshold} strikes, your account has been suspended for ${m.suspensionLength}. You will be able to access your account again on ${m.accessRestored}.`
+    );
+    // Note about future threshold
+    if (m.futureThreshold) {
+      const futureAction = m.futureThreshold === 16
+        ? 'your account will be permanently removed'
+        : `your account will be suspended for ${SUSP_DURATION[m.futureThreshold]}`;
+      parts.push(`Please note that at ${m.futureThreshold} strikes, ${futureAction}.`);
+    }
+  } else {
+    // No suspension triggered — note next threshold
+    if (m.nextThreshold) {
+      const nextAction = m.nextThreshold === 16
+        ? 'your account will be permanently removed'
+        : `your account will be suspended for ${SUSP_DURATION[m.nextThreshold]}`;
+      parts.push(`Please note that at ${m.nextThreshold} strikes, ${nextAction}.`);
+    }
+  }
+
+  // Approaching removal warning
+  if (m.approachingRemoval) {
+    parts.push('⚠️ Warning: You are approaching permanent account removal. At 16 strikes, your account will be permanently banned.');
+  }
+
+  parts.push(APPEAL);
+
+  return parts.join('\n\n');
+}
+
+// ─── UI Update ───────────────────────────────────────────────────────────────
+
+function set(id, text, cls) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'metric-value' + (cls ? ' ' + cls : '');
+}
+
+function update() {
+  const policy         = document.getElementById('policy').value;
+  const severityKey    = document.getElementById('severity').value;
+  const currentStrikes = Math.max(0, Math.min(15, parseInt(document.getElementById('currentStrikes').value) || 0));
+
+  // Show/hide current strikes field
+  const showStrikes = severityKey !== 'critical' && severityKey !== 'no_strikes';
+  document.getElementById('currentStrikesField').style.display = showStrikes ? 'block' : 'none';
+
+  const notifBox = document.getElementById('notifBox');
+  const copyBtn  = document.getElementById('copyBtn');
+
+  if (!policy || !severityKey) {
+    notifBox.textContent = 'Select a policy and severity level above to generate the notification text.';
+    notifBox.className   = 'notification-box placeholder';
+    copyBtn.disabled     = true;
+    resetMetrics();
+    return;
+  }
+
+  const m = compute(severityKey, currentStrikes);
+  if (!m) return;
+
+  // Update metrics
+  const isSpecial = m.violationType === 'critical' || m.violationType === 'none';
+
+  document.getElementById('m-policy').textContent = policy;
+  document.getElementById('m-policy').className   = 'metric-value muted';
+
+  set('m-added',  isSpecial ? '—' : String(m.strikesAdded));
+  set('m-total',  isSpecial ? '—' : String(m.newTotal),
+      m.newTotal >= 16 ? 'danger' : m.newTotal >= 12 ? 'warning' : '');
+  set('m-last',   isSpecial ? '—' : String(m.lastThreshold));
+  set('m-next',   isSpecial ? '—' : (m.nextThreshold ?? 'None'));
+  set('m-new',    isSpecial ? '—' : (m.newThreshold ?? 'None'),
+      m.newThreshold ? 'danger' : '');
+  set('m-future', isSpecial ? '—' : (m.futureThreshold ?? 'None'));
+
+  const suspCard = document.getElementById('m-susp-card');
+  suspCard.className = 'metric' + (m.suspensionTriggered ? ' highlight-danger' : '');
+  set('m-susp', isSpecial ? '—' : (m.suspensionTriggered ? 'Yes' : 'No'),
+      m.suspensionTriggered ? 'danger' : 'success');
+
+  set('m-length', isSpecial ? '—' : (m.suspensionLength ?? '—'),
+      m.suspensionLength === 'permanent' ? 'purple' : '');
+  set('m-access', isSpecial ? '—' : (m.accessRestored ?? (m.suspensionLength === 'permanent' ? 'Never' : '—')),
+      m.suspensionLength === 'permanent' ? 'purple' : '');
+
+  const approachCard = document.getElementById('m-approach-card');
+  approachCard.className = 'metric full' + (m.approachingRemoval ? ' highlight-warning' : '');
+  set('m-approach',
+      isSpecial ? '—' : (m.approachingRemoval ? '⚠️  Yes — approaching 16 strikes' : 'No'),
+      m.approachingRemoval ? 'warning' : '');
+
+  // Generate and display notification
+  const text = buildNotification(policy, severityKey, currentStrikes, m);
+  notifBox.textContent = text;
+  notifBox.className   = 'notification-box';
+  copyBtn.disabled     = false;
+}
+
+function resetMetrics() {
+  ['m-policy','m-added','m-total','m-last','m-next','m-new',
+   'm-future','m-susp','m-length','m-access','m-approach'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = '—';
+    el.className   = 'metric-value muted';
+  });
+  document.getElementById('m-susp-card').className    = 'metric';
+  document.getElementById('m-approach-card').className = 'metric full';
+}
+
+// ─── Copy ───────────────────────────────────────────────────────────────────
+
+function copyText() {
+  const text = document.getElementById('notifBox').textContent;
+  if (!text) return;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Text`;
+      btn.classList.remove('copied');
+    }, 2200);
+  });
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+
+document.getElementById('dateDisplay').textContent = formatDate(today());
+document.getElementById('policy').addEventListener('change', update);
+document.getElementById('severity').addEventListener('change', update);
+document.getElementById('currentStrikes').addEventListener('input', update);
+update();
+</script>
+</body>
+</html>
