@@ -45,12 +45,13 @@
     background: var(--blue);
     border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0,133,255,0.3);
+    padding: 9px;
   }
+  .header-icon svg { width: 100%; height: 100%; }
   .header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
-  .header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 560px; }
 
   /* Cards */
   .card {
@@ -270,10 +271,14 @@
 
   <!-- Header -->
   <div class="header">
-    <div class="header-icon">🦋</div>
+    <div class="header-icon">
+      <svg width="600" height="530" viewBox="0 0 600 530" xmlns="http://www.w3.org/2000/svg">
+        <path d="m135.72 44.03c66.496 49.921 138.02 151.14 164.28 205.46 26.262-54.316 97.782-155.54 164.28-205.46 47.98-36.021 125.72-63.892 125.72 24.795 0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.3797-3.6904-10.832-3.7077-7.8964-0.0174-2.9357-1.1937 0.51669-3.7077 7.8964-13.714 40.255-67.233 197.36-189.63 71.766-64.444-66.128-34.605-132.26 82.697-152.22-67.108 11.421-142.55-7.4491-163.25-81.433-5.9562-21.282-16.111-152.36-16.111-170.07 0-88.687 77.742-60.816 125.72-24.795z" fill="white"/>
+      </svg>
+    </div>
     <div>
-      <h1>Bluesky Moderation Notification Generator</h1>
-      <p>Generate moderation notifications for Ozone — no spreadsheet required</p>
+      <h1>Strike System Simulator</h1>
+      <p>A simulation tool that allows you to explore how the strike system behaves across different policies and severity levels. You can select a policy, adjust the number of strikes, and preview the exact enforcement message that would be sent to the violating account.</p>
     </div>
   </div>
 
